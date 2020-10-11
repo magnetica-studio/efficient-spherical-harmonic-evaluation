@@ -25,34 +25,36 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.  
 */ 
 
-#include "stdafx.h"
+// #include "stdafx.h"
 #include <math.h>
 #include <string>
 #include <sstream>
-
-using namespace std;
+#include "SHEvalCodeGen.hpp"
 
 // set to generate SSE code instead of vanilla C
 // does 4 evaluations in parallel...
-#define GENSSE
+// #define GENSSE 0
 
 // simple utility functions
+extern bool flipsign;
 
-string sConst(double d)
-{
-    ostringstream sstream;
+extern int g_sign ;
+
+std::string sConst(double d){
+    std::ostringstream  sstream;
     sstream.precision(16);
 #ifdef GENSSE
     sstream << "_mm_set_ps1("<<d<<"f)";
 #else
     sstream << d << "f";
+
 #endif
     return sstream.str();	
 }
 
-string sMul(string &s1, string &s2)
+std::string sMul(std::string s1, std::string s2)
 {
-    ostringstream sstream;
+    std::ostringstream  sstream;
 
 #ifdef GENSSE
     sstream << "_mm_mul_ps("<<s1<<","<<s2<<")";
@@ -62,9 +64,9 @@ string sMul(string &s1, string &s2)
     return sstream.str();	
 }
 
-string sAdd(string &s1, string &s2)
+std::string sAdd(std::string s1, std::string s2)
 {
-    ostringstream sstream;
+    std::ostringstream  sstream;
 
 #ifdef GENSSE
     sstream << "_mm_add_ps("<<s1<<","<<s2<<")";
@@ -74,9 +76,9 @@ string sAdd(string &s1, string &s2)
     return sstream.str();	
 }
 
-string sSub(string &s1, string &s2)
+std::string sSub(std::string s1, std::string s2)
 {
-    ostringstream sstream;
+    std::ostringstream  sstream;
 
 #ifdef GENSSE
     sstream << "_mm_sub_ps("<<s1<<","<<s2<<")";
@@ -87,9 +89,9 @@ string sSub(string &s1, string &s2)
 }
 
 
-string sSHIndex(int idx)
+std::string sSHIndex(int idx)
 {
-    ostringstream sstream;
+    std::ostringstream  sstream;
 #ifdef GENSSE
     sstream << "pSH + " << idx << "*4";
 #else
@@ -98,9 +100,9 @@ string sSHIndex(int idx)
     return sstream.str();
 }
 
-string sAssign(string &sVar, string &sRHS)
+std::string sAssign(std::string sVar, std::string sRHS)
 {
-    ostringstream sstream;
+    std::ostringstream  sstream;
 #ifdef GENSSE
     sstream << "_mm_store_ps(" << sVar << "," << sRHS << ")";
 #else
@@ -110,9 +112,9 @@ string sAssign(string &sVar, string &sRHS)
     return sstream.str();
 }
 
-string sSSELoad(string sAddr)
+std::string sSSELoad(std::string sAddr)
 {
-    ostringstream sstream;
+    std::ostringstream  sstream;
     sstream << "_mm_load_ps("<< sAddr << ")";
     return sstream.str();
 }
@@ -138,12 +140,14 @@ double K(const unsigned int l, const int m)
     return sqrt( (2.0*l + 1.0)/ ( 4*PI*uVal ) );
 }
 
+
 double Pmm(int m)
 {
     double val = 1.0;
-
+    int sign =(flipsign)? pow(-1,m) :1;
+ 
     for(int k=0;k<=m;k++) {
-        val = val*(1-2*k);
+        val = sign * val*(1-2*k);
     }
 
     return val;
@@ -151,25 +155,25 @@ double Pmm(int m)
 // some common strings for functions below
 // these are variables that are often precomputed in some way...
 
-string g_sX = "fX";
-string g_sY = "fY";
-string g_sZ = "fZ";
-string g_sZ2 = "fZ2";
+std::string g_sX = "fX";
+std::string g_sY = "fY";
+std::string g_sZ = "fZ";
+std::string g_sZ2 = "fZ2";
 
 // Pmm = (1-2m) Pm-1m-1 => prod_k(1-2k)
 // this normaly has the sin(theta) term (sqrt(1-x^2) in the associated legendre polynomials)
 // but that gets mixed with the phi terms to treat things as polynomials...
 
-string sRuleA(const int m, double fVal)
+std::string sRuleA(const int m, double fVal)
 {
-    return sConst(double(Pmm(m)*K(m,m)*fVal));
+    return sConst(g_sign* double(Pmm(m)*K(m,m)*fVal));
 }
 
 // Pmm+1 = (2m+1) z Pmm => constant times z
 
-string sRuleB(const int m, double fVal)
+std::string sRuleB(const int m, double fVal)
 {
-    return sMul(sConst(double((2*m+1.0)*Pmm(m)*K(m+1,m)*fVal)),g_sZ);
+    return sMul(sConst(g_sign*double((2*m+1.0)*Pmm(m)*K(m+1,m)*fVal)),g_sZ);
 }
 
 // PmL = ((2L-1)z PmL-1 - (L+m-1) PmL-2)/(L-m)
@@ -177,11 +181,11 @@ string sRuleB(const int m, double fVal)
 // PmL = ((2L-1)/ (L-m) PmL-1  z - (L+m-1)/ (L-m) PmL-2 
 // assume Klm and fVal were folded into previous values...
 // fVal not neded - since it is included in PmL-1 and PmL-2 already...
-string sRuleC(const int l, const int m, string &sPm1, string &sPm2)
+std::string sRuleC(const int l, const int m, std::string sPm1, std::string sPm2)
 {
 
-    double fA=K(l,m)/K(l-1,m)*(2*l-1.0)/(l-m);
-    double fB=-K(l,m)/K(l-2,m)*(l+m-1.0)/(l-m);
+    double fA=g_sign*K(l,m)/K(l-1,m)*(2*l-1.0)/(l-m);
+    double fB=g_sign*-K(l,m)/K(l-2,m)*(l+m-1.0)/(l-m);
 
     return sAdd(sMul(sMul(sConst(fA),g_sZ),sPm1),sMul(sConst(fB),sPm2));
 }
@@ -191,11 +195,11 @@ string sRuleC(const int l, const int m, string &sPm1, string &sPm2)
 // now fold all of the constants together...
 // Pmm+2 = ( (2m+3)(2m+1)Pmm/2 z^2  - (2m+1) Pmm / 2
 
-string sRuleD(const int m, double fVal)
+std::string sRuleD(const int m, double fVal)
 {
     const int l = m+2;
 
-    return sAdd(sMul(sConst(double( (2*m+3)*(2*m+1)*Pmm(m)/2*K(l,m)*fVal )),g_sZ2),sConst(double(-1.0*(2*m+1)*Pmm(m)/2*K(l,m)*fVal)));
+    return sAdd(sMul(sConst(g_sign*double( (2*m+3)*(2*m+1)*Pmm(m)/2*K(l,m)*fVal )),g_sZ2),sConst(g_sign*double(-1.0*(2*m+1)*Pmm(m)/2*K(l,m)*fVal)));
 }
 
 // plug rule D and B into rule C, factor out a z...
@@ -203,17 +207,17 @@ string sRuleD(const int m, double fVal)
 // fold constants, pull out z...
 // Pmm+3 = z ( (2m+5)(2m+3)(2m+1)Pmm/6 z^2 - ( (2m+5)(2m+1) Pmm/6 + (2m+2)(2m+1) Pmm/3 )
 
-string sRuleE(const int m, double fVal)
+std::string sRuleE(const int m, double fVal)
 {
     const int l = m+3;
 
-    const double Pu = Pmm(m);
-    const double fA = (2*m+5)*(2*m+3)*(2*m+1)*Pu/6*K(m+3,m)*fVal;
-    const double fB = -fVal*K(m+3,m)*((2*m+5)*(2*m+1)*Pu/6 + (2*m+2)*(2*m+1)*Pu/3);
+    const double Pu = g_sign*Pmm(m);
+    const double fA = g_sign*(2*m+5)*(2*m+3)*(2*m+1)*Pu/6*K(m+3,m)*fVal;
+    const double fB = g_sign*-fVal*K(m+3,m)*((2*m+5)*(2*m+1)*Pu/6 + (2*m+2)*(2*m+1)*Pu/3);
 
-    string fZ2 = "fZ2";
+    std::string fZ2 = "fZ2";
 
-    ostringstream sstream;
+    std::ostringstream  sstream;
     sstream.precision(16);
 
     sstream << "(" << sAdd(sMul(sConst(fA),g_sZ2),sConst(fB)) << ")";
@@ -222,21 +226,21 @@ string sRuleE(const int m, double fVal)
 
 // this is the reccurence relation for sin/cos
 
-string sCreateSinReccur(string &sCL, string &sSL)
+std::string sCreateSinReccur(std::string sCL, std::string sSL)
 {
     return sAdd(sMul(g_sX,sSL),sMul(g_sY,sCL));
 }
 
-string sCreateCosReccur(string &sCL, string &sSL)
+std::string sCreateCosReccur(std::string sCL, std::string sSL)
 {
     return sSub(sMul(g_sX,sCL),sMul(g_sY,sSL));
 }
 
 // generates SH evaluation code (in sResult) using symbolic stuff..
 
-void BuildSHEvalCode(string &sResult, const unsigned int lmax)
+void BuildSHEvalCode(std::string& sResult, const unsigned int lmax,bool flipsign)
 {
-   ostringstream ssResult(sResult);
+   std::ostringstream  ssResult(sResult);
    ssResult.precision(16);
 
    unsigned int l,m;
@@ -287,8 +291,8 @@ void BuildSHEvalCode(string &sResult, const unsigned int lmax)
 
    // loop for the rest of them...
    for(l=4;l<=lmax;l++) {
-      string sPm1 = sSHIndex((l-1)*(l-1)+(l-1));
-      string sPm2 = sSHIndex((l-2)*(l-2)+(l-2));
+      std::string sPm1 = sSHIndex((l-1)*(l-1)+(l-1));
+      std::string sPm2 = sSHIndex((l-2)*(l-2)+(l-2));
       idx = l*l+l;
 
 #ifdef GENSSE
@@ -305,11 +309,11 @@ void BuildSHEvalCode(string &sResult, const unsigned int lmax)
    ssResult << "fC0 = fX;\nfS0 = fY;\n\n"; // recurence for sin/cos
 
    // these 4 variables are required - no way to get around it
-   string sC[2] = {"fC0","fC1"};
-   string sS[2] = {"fS0","fS1"};
+   std::string sC[2] = {"fC0","fC1"};
+   std::string sS[2] = {"fS0","fS1"};
 
    // temporary variables, used by production rules
-   string sPrev[3] = {"fTmpA","fTmpB","fTmpC"};
+   std::string sPrev[3] = {"fTmpA","fTmpB","fTmpC"};
 
    int idxSC=0; // sine/cosine active index
 
