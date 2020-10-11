@@ -249,11 +249,11 @@ auto SHEvalExec(double x, double y, double z)
     -> std::array<double, getlen(ORDER)>
 {
     constexpr int matlen = getlen(ORDER);
-    constexpr auto alist = getRuleAList<matlen>();
-    constexpr auto blist = getRuleBList<matlen>();
-    constexpr auto dlist = getRuleDList<matlen>();
-    constexpr auto elist = getRuleEList<matlen>();
-    constexpr auto cmatrix = getRuleCMatrix<matlen, matlen>();
+    constexpr auto alist = getRuleAList<ORDER>();
+    constexpr auto blist = getRuleBList<ORDER>();
+    constexpr auto dlist = getRuleDList<ORDER>();
+    constexpr auto elist = getRuleEList<ORDER>();
+    constexpr auto cmatrix = getRuleCMatrix<ORDER+1, ORDER+1>();
     double zz = z * z;
     std::array<double, getlen(ORDER)> res;
     constexpr auto zeroth = K(0, 0);
