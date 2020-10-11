@@ -5,7 +5,8 @@
 #include <utility>
 #include <variant>
 
-namespace novonotes::constexprsheval{
+namespace novonotes::constexprsheval
+{
 constexpr double PI = 3.1415926535897932384626433832795;
 
 template <int M>
@@ -38,7 +39,8 @@ constexpr double K(unsigned int l, int m)
 {
     unsigned int cABSM = m < 0 ? -m : m;
 
-    double uVal = 1;  // has to be double or code is incorrect for large m starting around order 8...
+    double uVal = 1;  // has to be double or code is incorrect for large m starting
+                      // around order 8...
 
     for(unsigned int k = l + cABSM; k > (l - cABSM); k--)
     {
@@ -67,11 +69,8 @@ struct RuleAObj
     {
         fA = double(Pmm(m) * K(m, m) * fval);
     }
-    constexpr double operator()(double z) const
-    {
-        return fA;
-    }
-    double fA;
+    constexpr double operator()(double z) const { return fA; }
+    double fA = 0;
 };
 
 // Pmm = (1-2m) Pm-1m-1 => prod_k(1-2k)
@@ -84,11 +83,8 @@ struct RuleBObj
     {
         fA = double((2 * m + 1.0) * Pmm(m) * K(m + 1, m) * fval);
     }
-    constexpr double operator()(double z) const
-    {
-        return fA * (z * z);
-    }
-    double fA;
+    constexpr double operator()(double z) const { return fA * z; }
+    double fA = 0;
 };
 
 // plug rule A and B into rule C
@@ -102,19 +98,17 @@ struct RuleDObj
     explicit constexpr RuleDObj(int m, double fval)
     {
         const int l = m + 2;
+
         fA = double((2 * m + 3) * (2 * m + 1) * Pmm(m) / 2 * K(l, m) * fval);
         fB = double(-1.0 * (2 * m + 1) * Pmm(m) / 2 * K(l, m) * fval);
     }
-    constexpr double operator()(double z) const
-    {
-        return fA * (z * z) + fB;
-    }
-    double fA, fB;
+    constexpr double operator()(double z) const { return fA * (z * z) + fB; }
+    double fA = 0, fB = 0;
 };
 // plug rule D and B into rule C, factor out a z...
-// Pmm+3 = ( (2(m+3)-1)z (( (2m+3)(2m+1)Pmm/2 z^2  - (2m+1) Pmm / 2) - (m+3+m-1) (2m+1) z Pmm )/3
-// fold constants, pull out z...
-// Pmm+3 = z ( (2m+5)(2m+3)(2m+1)Pmm/6 z^2 - ( (2m+5)(2m+1) Pmm/6 + (2m+2)(2m+1) Pmm/3 )
+// Pmm+3 = ( (2(m+3)-1)z (( (2m+3)(2m+1)Pmm/2 z^2  - (2m+1) Pmm / 2) - (m+3+m-1)
+// (2m+1) z Pmm )/3 fold constants, pull out z... Pmm+3 = z (
+// (2m+5)(2m+3)(2m+1)Pmm/6 z^2 - ( (2m+5)(2m+1) Pmm/6 + (2m+2)(2m+1) Pmm/3 )
 
 struct RuleEObj
 {
@@ -124,13 +118,15 @@ struct RuleEObj
         const int l = m + 3;
         const double Pu = Pmm(m);
         fA = (2 * m + 5) * (2 * m + 3) * (2 * m + 1) * Pu / 6 * K(m + 3, m) * fval;
-        fB = -fval * K(m + 3, m) * ((2 * m + 5) * (2 * m + 1) * Pu / 6 + (2 * m + 2) * (2 * m + 1) * Pu / 3);
+        fB = -fval * K(m + 3, m) *
+             ((2 * m + 5) * (2 * m + 1) * Pu / 6 +
+              (2 * m + 2) * (2 * m + 1) * Pu / 3);
     }
-    constexpr double operator()(double z) const
+    constexpr double operator()(double z, double zz) const
     {
-        return z * (fA * (z * z) + fB);
+        return z * (fA * (zz) + fB);
     }
-    double fA, fB;
+    double fA = 0, fB = 0;
 };
 
 // PmL = ((2L-1)z PmL-1 - (L+m-1) PmL-2)/(L-m)
@@ -143,16 +139,14 @@ struct RuleCObj
     constexpr RuleCObj() {}
     explicit constexpr RuleCObj(int l, int m)
         : fA(K(l, m) / K(l - 1, m) * (2 * l - 1.0) / (l - m))
-        , fB(-K(l, m) / K(l - 2, m) * (l + m - 1.0) / (l - m))
-    {
-    }
+        , fB(-K(l, m) / K(l - 2, m) * (l + m - 1.0) / (l - m)) {}
     constexpr double operator()(double Pm1, double Pm2, double z) const
     {
         return fA * z * Pm1 + fB * Pm2;
     }
 
-    double fA=0;
-    double fB=1;
+    double fA = 0;
+    double fB = 1;
 };
 
 // this is the reccurence relation for sin/cos
@@ -165,18 +159,6 @@ constexpr double SinReccur(double sCL, double sSL, double x, double y)
 constexpr double CosReccur(double sCL, double sSL, double x, double y)
 {
     return x * sCL - y * sSL;
-}
-
-template <int size, int init = 0>
-constexpr auto getindexarray()
-{
-    std::array<double, size> res{};
-    int i = init;
-    for(auto& e : res)
-    {
-        e = i++;
-    }
-    return res;
 }
 
 template <int ORDER>
@@ -251,40 +233,54 @@ constexpr auto getRuleCMatrix()
 
 using shevalfntype = double (*)(double, double, double);
 
-template <int ORDER>
-std::array<double, (ORDER * 2 + 1)> SHEvalExec(double x, double y, double z)
+constexpr int getlen(int order)
 {
-    constexpr int matlen = (ORDER * 2 + 1);
+    int res = 0;
+    for(int i = 0; i <= order; i++)
+    {
+        res += 2 * i + 1;
+    }
+
+    return res;
+}
+
+template <int ORDER>
+auto SHEvalExec(double x, double y, double z)
+    -> std::array<double, getlen(ORDER)>
+{
+    constexpr int matlen = getlen(ORDER);
     constexpr auto alist = getRuleAList<matlen>();
     constexpr auto blist = getRuleBList<matlen>();
     constexpr auto dlist = getRuleDList<matlen>();
     constexpr auto elist = getRuleEList<matlen>();
     constexpr auto cmatrix = getRuleCMatrix<matlen, matlen>();
-    std::array<double, (ORDER * 2 + 1)> res;
+    double zz = z * z;
+    std::array<double, getlen(ORDER)> res;
     constexpr auto zeroth = K(0, 0);
     res[0] = zeroth;
-    if constexpr(ORDER == 0) return res;
-    constexpr int m = 0;
+    if constexpr(matlen == 0)
+        return res;
+    constexpr int mc = 0;
     int l = 1;
     int idx = l * l + l;
     if constexpr(ORDER > 1)
     {
-        constexpr auto b = RuleBObj(m, 1.0);
+        constexpr auto b = RuleBObj(mc, 1.0);
         res[idx] = b(z);
     }
     if constexpr(ORDER > 2)
     {
         l = 2;
         idx = l * l + l;
-        constexpr auto d = RuleDObj(m, 1.0);
+        constexpr auto d = RuleDObj(mc, 1.0);
         res[idx] = d(z);
     }
     if constexpr(ORDER > 3)
     {
         l = 3;
         idx = l * l + l;
-        constexpr auto e = RuleEObj(m, 1.0);
-        res[idx] = e(z);
+        constexpr auto e = RuleEObj(mc, 1.0);
+        res[idx] = e(z, zz);
     }
     if constexpr(ORDER > 4)
     {
@@ -293,7 +289,7 @@ std::array<double, (ORDER * 2 + 1)> SHEvalExec(double x, double y, double z)
             auto Pm1 = res[(l - 1) * (l - 1) + (l - 1)];
             auto Pm2 = res[(l - 2) * (l - 2) + (l - 2)];
             idx = l * l + l;
-            auto c = cmatrix.at(m).at(l);
+            auto c = cmatrix.at(mc).at(l);
             res[idx] = c(Pm1, Pm2, z);
         }
     }
@@ -303,42 +299,41 @@ std::array<double, (ORDER * 2 + 1)> SHEvalExec(double x, double y, double z)
     std::array<double, 2> fs{y, 0};
 
     double fZ2 = z * z;
-    int idxC, idxS, idxP;  // cosine (+m) sine (-m) pairs are what you loop through...
+    int idxC, idxS,
+        idxP;  // cosine (+m) sine (-m) pairs are what you loop through...
     bool sincos_flip = false;
-
-    using rulefnvariant = std::variant<decltype(alist), decltype(blist), decltype(dlist), decltype(elist)>();
-
-    constexpr auto ABDEfns = std::make_tuple(alist, blist, dlist, elist);
-    for(int m = 1; m < ORDER; m++)
+    int m = 1;
+    for(m = 1; m < ORDER; m++)
     {
         l = m;
-        for(int iter = 1; iter < 4; iter++)  //calc a,b,d,e first
+        for(int iter = 0; iter < 4; iter++)  // calc a,b,d,e first
         {
+            idxP++;
+
             if(m + iter <= ORDER)
             {
-                idxP++;
                 idxC = l * l + l + m;
                 idxS = l * l + l - m;
 
                 switch(iter)
                 {
                     case 0:
-                        fprev[idxP] = alist[m](z);
+                        fprev[idxP % 3] = alist[m](z);
                         break;
                     case 1:
-                        fprev[idxP] = blist[m](z);
+                        fprev[idxP % 3] = blist[m](z);
                         break;
                     case 2:
-                        fprev[idxP] = dlist[m](z);
+                        fprev[idxP % 3] = dlist[m](z);
                         break;
                     case 3:
-                        fprev[idxP] = elist[m](z);
+                        fprev[idxP % 3] = elist[m](z, zz);
                         break;
                     default:
                         break;
                 }
-                res[idxC] = fprev[idxP] * fc[(int)sincos_flip];
-                res[idxS] = fprev[idxP] * fs[(int)sincos_flip];
+                res[idxC] = fprev[idxP % 3] * fc[(int)sincos_flip];
+                res[idxS] = fprev[idxP % 3] * fs[(int)sincos_flip];
                 l++;
             }
         }
@@ -348,16 +343,19 @@ std::array<double, (ORDER * 2 + 1)> SHEvalExec(double x, double y, double z)
             idxC = l * l + l + m;
             idxS = l * l + l - m;
 
-            idxP++;
             auto c = cmatrix.at(m).at(l);
-            fprev[idxP % 3] = c(fprev[(idxP + 3 - 1) % 3], fprev[(idxP + 3 - 2) % 3], z);
+            idxP++;
+            fprev[idxP % 3] =
+                c(fprev[(idxP + 3 - 1) % 3], fprev[(idxP + 3 - 2) % 3], z);
             res[idxC] = fprev[idxP % 3] * fc[(int)sincos_flip];
             res[idxS] = fprev[idxP % 3] * fs[(int)sincos_flip];
         }
 
         // update cosine and sine
-        fc[(int)!sincos_flip] = CosReccur(fc[(int)sincos_flip], fs[(int)sincos_flip], x, y);
-        fs[(int)!sincos_flip] = SinReccur(fc[(int)sincos_flip], fs[(int)sincos_flip], x, y);
+        fc[(int)!sincos_flip] =
+            CosReccur(fc[(int)sincos_flip], fs[(int)sincos_flip], x, y);
+        fs[(int)!sincos_flip] =
+            SinReccur(fc[(int)sincos_flip], fs[(int)sincos_flip], x, y);
 
         sincos_flip = !sincos_flip;
     }
@@ -365,11 +363,12 @@ std::array<double, (ORDER * 2 + 1)> SHEvalExec(double x, double y, double z)
 
     l = ORDER;
 
-    idxC = l * l + l + m;
-    idxS = l * l + l - m;
+    idxC = l * l + l + ORDER;
+    idxS = l * l + l - ORDER;
 
-    idxP = (idxP + 1) % 3;  // use any tmp variable here, just bump to the next to maximize scheduling issues...
-    constexpr auto atmp = RuleAObj(m, constsqrt(2.0));
+    idxP = (idxP + 1) % 3;  // use any tmp variable here, just bump to the next to
+                            // maximize scheduling issues...
+    constexpr auto atmp = RuleAObj(ORDER, constsqrt(2.0));
     fprev[idxP] = atmp(z);
 
     res[idxC] = fprev[idxP] * fc[(int)sincos_flip];
@@ -377,4 +376,4 @@ std::array<double, (ORDER * 2 + 1)> SHEvalExec(double x, double y, double z)
 
     return res;
 }
-}
+}  // namespace novonotes::constexprsheval
