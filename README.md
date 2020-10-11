@@ -32,3 +32,12 @@ uncomment the line below in CMakeLists.txt
 # target_compile_definitions(shevalcodegen PRIVATE GENSSE)
 ```
 
+# constexpr version
+
+```cpp
+#include "ConstexprSHEval.hpp"
+
+namespace cshe =  novonotes::constexprsheval
+
+cshe::SHEvalExec<7>(0.2, 0.3, 0.3)
+```
