@@ -168,7 +168,7 @@ constexpr auto getRuleAList()
     int m = 0;
     for(int m = 0; m < ORDER; m++)
     {
-        res.at(m) = RuleAObj(m, constsqrt(2.0));
+        res.at(m) = RuleAObj(m+1, constsqrt(2.0));
     }
     return res;
 }
@@ -180,7 +180,7 @@ constexpr auto getRuleBList()
     int m = 0;
     for(int m = 0; m < ORDER; m++)
     {
-        res.at(m) = RuleBObj(m, constsqrt(2.0));
+        res.at(m) = RuleBObj(m+1, constsqrt(2.0));
     }
     return res;
 }
@@ -192,7 +192,7 @@ constexpr auto getRuleDList()
     int m = 0;
     for(int m = 0; m < ORDER; m++)
     {
-        res.at(m) = RuleDObj(m, constsqrt(2.0));
+        res.at(m) = RuleDObj(m+1, constsqrt(2.0));
     }
     return res;
 }
@@ -203,7 +203,7 @@ constexpr auto getRuleEList()
     int m = 0;
     for(int m = 0; m < ORDER; m++)
     {
-        res.at(m) = RuleEObj(m, constsqrt(2.0));
+        res.at(m) = RuleEObj(m+1, constsqrt(2.0));
     }
     return res;
 }
@@ -221,9 +221,9 @@ constexpr auto getRuleCMatrix()
     {
         for(int l = 0; l < L; l++)
         {
-            if(l - m != 0)
+            if(l+4  - m != 0)
             {
-                res.at(m).at(l) = RuleCObj(l, m);
+                res.at(m).at(l) = RuleCObj(l+4, m);
             }
         }
     }
@@ -249,11 +249,11 @@ auto SHEvalExec(double x, double y, double z)
     -> std::array<double, getlen(ORDER)>
 {
     constexpr int matlen = getlen(ORDER);
-    constexpr auto alist = getRuleAList<ORDER>();
-    constexpr auto blist = getRuleBList<ORDER>();
-    constexpr auto dlist = getRuleDList<ORDER>();
-    constexpr auto elist = getRuleEList<ORDER>();
-    constexpr auto cmatrix = getRuleCMatrix<ORDER+1, ORDER+1>();
+    constexpr auto alist = getRuleAList<ORDER-1>();
+    constexpr auto blist = getRuleBList<ORDER-2>();
+    constexpr auto dlist = getRuleDList<ORDER-3>();
+    constexpr auto elist = getRuleEList<ORDER-4>();
+    constexpr auto cmatrix = getRuleCMatrix<ORDER-3, ORDER>();
     double zz = z * z;
     std::array<double, getlen(ORDER)> res;
     constexpr auto zeroth = K(0, 0);
@@ -289,7 +289,7 @@ auto SHEvalExec(double x, double y, double z)
             auto Pm1 = res[(l - 1) * (l - 1) + (l - 1)];
             auto Pm2 = res[(l - 2) * (l - 2) + (l - 2)];
             idx = l * l + l;
-            auto c = cmatrix.at(mc).at(l);
+            auto&& c = cmatrix.at(mc).at(l-4);
             res[idx] = c(Pm1, Pm2, z);
         }
     }
@@ -318,16 +318,16 @@ auto SHEvalExec(double x, double y, double z)
                 switch(iter)
                 {
                     case 0:
-                        fprev[idxP % 3] = alist[m](z);
+                        fprev[idxP % 3] = alist[m-1](z);
                         break;
                     case 1:
-                        fprev[idxP % 3] = blist[m](z);
+                        fprev[idxP % 3] = blist[m-1](z);
                         break;
                     case 2:
-                        fprev[idxP % 3] = dlist[m](z);
+                        fprev[idxP % 3] = dlist[m-1](z);
                         break;
                     case 3:
-                        fprev[idxP % 3] = elist[m](z, zz);
+                        fprev[idxP % 3] = elist[m-1](z, zz);
                         break;
                     default:
                         break;
@@ -343,7 +343,7 @@ auto SHEvalExec(double x, double y, double z)
             idxC = l * l + l + m;
             idxS = l * l + l - m;
 
-            auto c = cmatrix.at(m).at(l);
+            auto&& c = cmatrix.at(m).at(l-4);
             idxP++;
             fprev[idxP % 3] =
                 c(fprev[(idxP + 3 - 1) % 3], fprev[(idxP + 3 - 2) % 3], z);

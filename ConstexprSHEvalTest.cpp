@@ -15,7 +15,7 @@ int main(){
     std::cout << "\n";
     }
     std::cout << std::endl;
-    std::array<double,64> shdata;
+    std::array<float,64> shdata;
     SHEval9(0.12,rt2,rt2,shdata.data());
     count =0;
     for(int order =0; order<8;order++){
