@@ -168,7 +168,7 @@ constexpr auto getRuleAList()
     int m = 0;
     for(int m = 0; m < ORDER; m++)
     {
-        res.at(m) = RuleAObj(m+1, constsqrt(2.0));
+        res.at(m) = RuleAObj(m + 1, constsqrt(2.0));
     }
     return res;
 }
@@ -180,7 +180,7 @@ constexpr auto getRuleBList()
     int m = 0;
     for(int m = 0; m < ORDER; m++)
     {
-        res.at(m) = RuleBObj(m+1, constsqrt(2.0));
+        res.at(m) = RuleBObj(m + 1, constsqrt(2.0));
     }
     return res;
 }
@@ -192,7 +192,7 @@ constexpr auto getRuleDList()
     int m = 0;
     for(int m = 0; m < ORDER; m++)
     {
-        res.at(m) = RuleDObj(m+1, constsqrt(2.0));
+        res.at(m) = RuleDObj(m + 1, constsqrt(2.0));
     }
     return res;
 }
@@ -203,7 +203,7 @@ constexpr auto getRuleEList()
     int m = 0;
     for(int m = 0; m < ORDER; m++)
     {
-        res.at(m) = RuleEObj(m+1, constsqrt(2.0));
+        res.at(m) = RuleEObj(m + 1, constsqrt(2.0));
     }
     return res;
 }
@@ -221,9 +221,9 @@ constexpr auto getRuleCMatrix()
     {
         for(int l = 0; l < L; l++)
         {
-            if(l+4  - m != 0)
+            if(l + 4 - m != 0)
             {
-                res.at(m).at(l) = RuleCObj(l+4, m);
+                res.at(m).at(l) = RuleCObj(l + 4, m);
             }
         }
     }
@@ -249,47 +249,43 @@ constexpr auto SHEvalExec(double x, double y, double z)
     -> std::array<double, getlen(ORDER)>
 {
     constexpr int matlen = getlen(ORDER);
-    constexpr auto alist = getRuleAList<ORDER-1>();
-    constexpr auto blist = getRuleBList<ORDER-2>();
-    constexpr auto dlist = getRuleDList<ORDER-3>();
-    constexpr auto elist = getRuleEList<ORDER-4>();
-    constexpr auto cmatrix = getRuleCMatrix<ORDER-3, ORDER>();
     double zz = z * z;
-    std::array<double, getlen(ORDER)> res {};
+    std::array<double, getlen(ORDER)> res{};
     constexpr auto zeroth = K(0, 0);
     res[0] = zeroth;
-    if constexpr(matlen == 0)
+    if constexpr(ORDER == 0)
         return res;
     constexpr int mc = 0;
     int l = 1;
     int idx = l * l + l;
-    if constexpr(ORDER > 1)
+    if constexpr(ORDER >= 1)
     {
         constexpr auto b = RuleBObj(mc, 1.0);
         res[idx] = b(z);
     }
-    if constexpr(ORDER > 2)
+    if constexpr(ORDER >= 2)
     {
         l = 2;
         idx = l * l + l;
         constexpr auto d = RuleDObj(mc, 1.0);
         res[idx] = d(z);
     }
-    if constexpr(ORDER > 3)
+    if constexpr(ORDER >= 3)
     {
         l = 3;
         idx = l * l + l;
         constexpr auto e = RuleEObj(mc, 1.0);
         res[idx] = e(z, zz);
     }
-    if constexpr(ORDER > 4)
+    if constexpr(ORDER >= 4)
     {
         for(l = 4; l <= ORDER; l++)
         {
             auto Pm1 = res[(l - 1) * (l - 1) + (l - 1)];
             auto Pm2 = res[(l - 2) * (l - 2) + (l - 2)];
             idx = l * l + l;
-            auto&& c = cmatrix.at(mc).at(l-4);
+            constexpr auto cmatrix = getRuleCMatrix<ORDER - 3, ORDER>();
+            auto&& c = cmatrix.at(mc).at(l - 4);
             res[idx] = c(Pm1, Pm2, z);
         }
     }
@@ -318,16 +314,32 @@ constexpr auto SHEvalExec(double x, double y, double z)
                 switch(iter)
                 {
                     case 0:
-                        fprev[idxP % 3] = alist[m-1](z);
+                        if constexpr(ORDER > 0)
+                        {
+                            constexpr auto alist = getRuleAList<ORDER>();
+                            fprev[idxP % 3] = alist.at(m - 1)(z);
+                        }
                         break;
                     case 1:
-                        fprev[idxP % 3] = blist[m-1](z);
+                        if constexpr(ORDER > 1)
+                        {
+                            constexpr auto blist = getRuleBList<ORDER - 1>();
+                            fprev[idxP % 3] = blist.at(m - 1)(z);
+                        }
                         break;
                     case 2:
-                        fprev[idxP % 3] = dlist[m-1](z);
+                        if constexpr(ORDER > 2)
+                        {
+                            constexpr auto dlist = getRuleDList<ORDER - 2>();
+                            fprev[idxP % 3] = dlist.at(m - 1)(z);
+                        }
                         break;
                     case 3:
-                        fprev[idxP % 3] = elist[m-1](z, zz);
+                        if constexpr(ORDER > 3)
+                        {
+                            constexpr auto elist = getRuleEList<ORDER - 3>();
+                            fprev[idxP % 3] = elist.at(m - 1)(z, zz);
+                        }
                         break;
                     default:
                         break;
@@ -337,20 +349,21 @@ constexpr auto SHEvalExec(double x, double y, double z)
                 l++;
             }
         }
-
-        for(l = m + 4; l <= ORDER; l++)
-        {  // then, calc other coeffs using ruleC
-            idxC = l * l + l + m;
-            idxS = l * l + l - m;
-
-            auto&& c = cmatrix.at(m).at(l-4);
-            idxP++;
-            fprev[idxP % 3] =
-                c(fprev[(idxP + 3 - 1) % 3], fprev[(idxP + 3 - 2) % 3], z);
-            res[idxC] = fprev[idxP % 3] * fc[(int)sincos_flip];
-            res[idxS] = fprev[idxP % 3] * fs[(int)sincos_flip];
+        if constexpr(ORDER > 3)
+        {
+            for(l = m + 4; l <= ORDER; l++)
+            {  // then, calc other coeffs using ruleC
+                idxC = l * l + l + m;
+                idxS = l * l + l - m;
+                constexpr auto cmatrix = getRuleCMatrix<ORDER - 3, ORDER>();
+                auto&& c = cmatrix.at(m).at(l - 4);
+                idxP++;
+                fprev[idxP % 3] =
+                    c(fprev[(idxP + 3 - 1) % 3], fprev[(idxP + 3 - 2) % 3], z);
+                res[idxC] = fprev[idxP % 3] * fc[(int)sincos_flip];
+                res[idxS] = fprev[idxP % 3] * fs[(int)sincos_flip];
+            }
         }
-
         // update cosine and sine
         fc[(int)!sincos_flip] =
             CosReccur(fc[(int)sincos_flip], fs[(int)sincos_flip], x, y);
