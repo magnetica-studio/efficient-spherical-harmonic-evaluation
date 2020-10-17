@@ -245,7 +245,7 @@ constexpr int getlen(int order)
 }
 
 template <int ORDER>
-auto SHEvalExec(double x, double y, double z)
+constexpr auto SHEvalExec(double x, double y, double z)
     -> std::array<double, getlen(ORDER)>
 {
     constexpr int matlen = getlen(ORDER);
@@ -255,7 +255,7 @@ auto SHEvalExec(double x, double y, double z)
     constexpr auto elist = getRuleEList<ORDER-4>();
     constexpr auto cmatrix = getRuleCMatrix<ORDER-3, ORDER>();
     double zz = z * z;
-    std::array<double, getlen(ORDER)> res;
+    std::array<double, getlen(ORDER)> res {};
     constexpr auto zeroth = K(0, 0);
     res[0] = zeroth;
     if constexpr(matlen == 0)
@@ -293,14 +293,14 @@ auto SHEvalExec(double x, double y, double z)
             res[idx] = c(Pm1, Pm2, z);
         }
     }
-    double fC0, fC1, fS0, fS1, fTmpA, fTmpB, fTmpC;
+    double fC0 = {}, fC1 = {}, fS0 = {}, fS1 = {}, fTmpA = {}, fTmpB = {}, fTmpC = {};
     std::array<double, 3> fprev{0, 0, 0};
     std::array<double, 2> fc{x, 0};
     std::array<double, 2> fs{y, 0};
 
     double fZ2 = z * z;
-    int idxC, idxS,
-        idxP;  // cosine (+m) sine (-m) pairs are what you loop through...
+    int idxC = {}, idxS = {},
+        idxP = {};  // cosine (+m) sine (-m) pairs are what you loop through...
     bool sincos_flip = false;
     int m = 1;
     for(m = 1; m < ORDER; m++)
