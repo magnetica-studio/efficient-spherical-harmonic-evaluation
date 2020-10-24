@@ -1,5 +1,10 @@
 #include "ConstexprSHEval.hpp"
 #include "generated/SHEval_normal.cpp"
+namespace Flipped
+{
+#include "generated/SHEval_Flipped.cpp"
+}
+
 #include <iomanip>
 #include <iostream>
 namespace cshe = novonotes::constexprsheval;
@@ -10,33 +15,70 @@ void SHEval1(const float fX, const float fY, const float fZ, float *pSH)
     pSH[0] = 0.2820947917738781f;
 }
 
-void SHEval(int order, float x, float y, float z, float *dest)
+void SHEval(int order, float x, float y, float z, float *dest, bool signflip = false)
 {
-    switch(order) {
-        case 1: return SHEval1(x, y, z, dest);
-        case 2: return SHEval2(x, y, z, dest);
-        case 3: return SHEval3(x, y, z, dest);
-        case 4: return SHEval4(x, y, z, dest);
-        case 5: return SHEval5(x, y, z, dest);
-        case 6: return SHEval6(x, y, z, dest);
-        case 7: return SHEval7(x, y, z, dest);
-        case 8: return SHEval8(x, y, z, dest);
-        default: return;
+    if(!signflip)
+    {
+        switch(order)
+        {
+            case 1:
+                return SHEval1(x, y, z, dest);
+            case 2:
+                return SHEval2(x, y, z, dest);
+            case 3:
+                return SHEval3(x, y, z, dest);
+            case 4:
+                return SHEval4(x, y, z, dest);
+            case 5:
+                return SHEval5(x, y, z, dest);
+            case 6:
+                return SHEval6(x, y, z, dest);
+            case 7:
+                return SHEval7(x, y, z, dest);
+            case 8:
+                return SHEval8(x, y, z, dest);
+            default:
+                return;
+        }
+    }
+    else
+    {
+        switch(order)
+        {
+            case 1:
+                return SHEval1(x, y, z, dest);
+            case 2:
+                return Flipped::SHEval2(x, y, z, dest);
+            case 3:
+                return Flipped::SHEval3(x, y, z, dest);
+            case 4:
+                return Flipped::SHEval4(x, y, z, dest);
+            case 5:
+                return Flipped::SHEval5(x, y, z, dest);
+            case 6:
+                return Flipped::SHEval6(x, y, z, dest);
+            case 7:
+                return Flipped::SHEval7(x, y, z, dest);
+            case 8:
+                return Flipped::SHEval8(x, y, z, dest);
+            default:
+                return;
+        }
     }
 }
 
-template<int AMBI_ORDER>
+template <int AMBI_ORDER,bool SIGNFLIP>
 void test()
 {
     constexpr auto rt2 = novonotes::constexprsheval::constsqrt(2);
 
     std::array<float, (AMBI_ORDER + 1) * (AMBI_ORDER + 1)> expected;
-    SHEval(AMBI_ORDER + 1, 0.12, rt2, rt2, expected.data());
+    SHEval(AMBI_ORDER + 1, 0.12, rt2, rt2, expected.data(),SIGNFLIP);
 
-    constexpr std::array<double, (AMBI_ORDER + 1) * (AMBI_ORDER + 1)> actual
-        = cshe::SHEvalExec<AMBI_ORDER>(0.12,rt2,rt2);
+    constexpr std::array<double, (AMBI_ORDER + 1) * (AMBI_ORDER + 1)> actual = cshe::SHEvalExec<AMBI_ORDER,SIGNFLIP>(0.12, rt2, rt2);
 
-    for(int i = 0; i < (AMBI_ORDER + 1) * (AMBI_ORDER + 1); ++i) {
+    for(int i = 0; i < (AMBI_ORDER + 1) * (AMBI_ORDER + 1); ++i)
+    {
         std::cout
             << std::setw(11) << std::setprecision(8) << expected[i] << ", "
             << std::setw(11) << std::setprecision(8) << actual[i] << " => "
@@ -46,19 +88,24 @@ void test()
 }
 
 // test<0> から test<AMBI_ORDER> までのテストを順に呼び出す。
-template<int AMBI_ORDER>
+template <int AMBI_ORDER>
 void invoke_tests()
 {
-    if constexpr(AMBI_ORDER > 0) {
-        invoke_tests<AMBI_ORDER-1>();
+    if constexpr(AMBI_ORDER > 0)
+    {
+        invoke_tests<AMBI_ORDER - 1>();
     }
 
     std::cout << "---------------------------------------" << std::endl;
     std::cout << "Test(" << AMBI_ORDER << ")" << std::endl;
-    test<AMBI_ORDER>();
+    test<AMBI_ORDER,false>();
+        std::cout << "---------------------------------------" << std::endl;
+    std::cout << "Test(FLIPPED SIGN: " << AMBI_ORDER << ")" << std::endl;
+    test<AMBI_ORDER,true>();
 }
 
-int main(){
+int main()
+{
     invoke_tests<7>();
 
     return 0;
