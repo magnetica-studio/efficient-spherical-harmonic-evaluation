@@ -68,8 +68,9 @@ void SHEval(int order, float x, float y, float z, float *dest, bool signflip = f
 }
 
 template <int AMBI_ORDER,bool SIGNFLIP>
-void test()
+bool test()
 {
+    bool res = true;
     constexpr auto rt2 = novonotes::constexprsheval::constsqrt(2);
 
     std::array<float, (AMBI_ORDER + 1) * (AMBI_ORDER + 1)> expected;
@@ -79,34 +80,41 @@ void test()
 
     for(int i = 0; i < (AMBI_ORDER + 1) * (AMBI_ORDER + 1); ++i)
     {
+        auto exec_result = ((std::fabs(expected[i] - actual[i]) <= 0.001));
+
         std::cout
             << std::setw(11) << std::setprecision(8) << expected[i] << ", "
             << std::setw(11) << std::setprecision(8) << actual[i] << " => "
-            << ((std::fabs(expected[i] - actual[i]) <= 0.001) ? "same" : "differ")
+            << (exec_result ? "same" : "differ")
             << std::endl;
+            res &= exec_result;
     }
+    return res;
 }
 
 // test<0> から test<AMBI_ORDER> までのテストを順に呼び出す。
 template <int AMBI_ORDER>
-void invoke_tests()
+bool invoke_tests()
 {
+    bool res = true;
     if constexpr(AMBI_ORDER > 0)
     {
-        invoke_tests<AMBI_ORDER - 1>();
+        res &= invoke_tests<AMBI_ORDER - 1>();
     }
 
     std::cout << "---------------------------------------" << std::endl;
     std::cout << "Test(" << AMBI_ORDER << ")" << std::endl;
-    test<AMBI_ORDER,false>();
+    res &= test<AMBI_ORDER,false>();
         std::cout << "---------------------------------------" << std::endl;
     std::cout << "Test(FLIPPED SIGN: " << AMBI_ORDER << ")" << std::endl;
-    test<AMBI_ORDER,true>();
+    res &= test<AMBI_ORDER,true>();
+    return res;
 }
 
 int main()
 {
-    invoke_tests<7>();
+    bool res = invoke_tests<7>();
+    std::cout << "Test " << ((res)? "SUCCEEDED":"FAILED" )<< "." << std::endl;
 
-    return 0;
+    return (res)?0:-1;
 }
