@@ -9,7 +9,9 @@ namespace Flipped
 #include <iostream>
 namespace cshe = novonotes::constexprsheval;
 
-// テスト用に order 0 の SHEval 関数を定義する。（generated 内のソースにはこの関数が生成されないので）
+
+// Compare SHEval functions between an original and Constexpr Version.
+
 void SHEval1(const float fX, const float fY, const float fZ, float *pSH)
 {
     pSH[0] = 0.2820947917738781f;
