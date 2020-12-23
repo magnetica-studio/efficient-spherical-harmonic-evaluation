@@ -1,15 +1,17 @@
 #include "ConstexprSHEval.hpp"
-#include "generated/SHEval_normal.cpp"
+#include "codegen/generated/SHEval_normal.cpp"
 namespace Flipped
 {
-#include "generated/SHEval_Flipped.cpp"
+#include "codegen/generated/SHEval_Flipped.cpp"
 }
 
 #include <iomanip>
 #include <iostream>
 namespace cshe = novonotes::constexprsheval;
 
-// テスト用に order 0 の SHEval 関数を定義する。（generated 内のソースにはこの関数が生成されないので）
+
+// Compare SHEval functions between an original and Constexpr Version.
+
 void SHEval1(const float fX, const float fY, const float fZ, float *pSH)
 {
     pSH[0] = 0.2820947917738781f;
@@ -67,16 +69,16 @@ void SHEval(int order, float x, float y, float z, float *dest, bool signflip = f
     }
 }
 
-template <int AMBI_ORDER,bool SIGNFLIP>
+template <int AMBI_ORDER, bool SIGNFLIP>
 bool test()
 {
     bool res = true;
-    constexpr auto rt2 = novonotes::constexprsheval::constsqrt(2);
+    constexpr auto rt3 = novonotes::constexprsheval::constsqrt(3);
 
     std::array<float, (AMBI_ORDER + 1) * (AMBI_ORDER + 1)> expected;
-    SHEval(AMBI_ORDER + 1, 0.12, rt2, rt2, expected.data(),SIGNFLIP);
+    SHEval(AMBI_ORDER + 1, 1.0 / rt3, 1.0 / rt3, 1.0 / rt3, expected.data(), SIGNFLIP);
 
-    constexpr std::array<double, (AMBI_ORDER + 1) * (AMBI_ORDER + 1)> actual = cshe::SHEvalExec<AMBI_ORDER,SIGNFLIP>(0.12, rt2, rt2);
+    constexpr std::array<double, (AMBI_ORDER + 1) * (AMBI_ORDER + 1)> actual = cshe::SHEvalExec<AMBI_ORDER, SIGNFLIP>(1.0 / rt3, 1.0 / rt3, 1.0 / rt3);
 
     for(int i = 0; i < (AMBI_ORDER + 1) * (AMBI_ORDER + 1); ++i)
     {
@@ -87,7 +89,7 @@ bool test()
             << std::setw(11) << std::setprecision(8) << actual[i] << " => "
             << (exec_result ? "same" : "differ")
             << std::endl;
-            res &= exec_result;
+        res &= exec_result;
     }
     return res;
 }
@@ -104,17 +106,17 @@ bool invoke_tests()
 
     std::cout << "---------------------------------------" << std::endl;
     std::cout << "Test(" << AMBI_ORDER << ")" << std::endl;
-    res &= test<AMBI_ORDER,false>();
-        std::cout << "---------------------------------------" << std::endl;
+    res &= test<AMBI_ORDER, false>();
+    std::cout << "---------------------------------------" << std::endl;
     std::cout << "Test(FLIPPED SIGN: " << AMBI_ORDER << ")" << std::endl;
-    res &= test<AMBI_ORDER,true>();
+    res &= test<AMBI_ORDER, true>();
     return res;
 }
 
 int main()
 {
     bool res = invoke_tests<7>();
-    std::cout << "Test " << ((res)? "SUCCEEDED":"FAILED" )<< "." << std::endl;
+    std::cout << "Test " << ((res) ? "SUCCEEDED" : "FAILED") << "." << std::endl;
 
-    return (res)?0:-1;
+    return (res) ? 0 : -1;
 }
